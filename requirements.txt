@@ -5,3 +5,6 @@ scipy
 tqdm
 hypothesis
 numpy
+torchvision
+torch
+tiffile
