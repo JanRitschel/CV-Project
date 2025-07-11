@@ -122,12 +122,14 @@ def cross_validate(dataset: PatchDatasetFromJson):
             # Save the best model based on average score
             if avg_score > best_acc:
                 best_acc = avg_score
+                best_tuple = (batch_size, lr)
                 best_params = {'batch_size': batch_size, 'lr': lr}
                 torch.save(model.state_dict(), "best_model.pth")
 
     tqdm.write("Best parameters:")
     tqdm.write(str(best_params))
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
+    return best_tuple
 
 def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS):
     train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
