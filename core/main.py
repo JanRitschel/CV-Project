@@ -9,6 +9,7 @@ from sklearn.metrics import accuracy_score
 import timm
 import numpy as np
 from dataset import PatchDatasetFromJson
+from tqdm import tqdm
 
 # Constants
 NUM_CLASSES = 8
@@ -68,11 +69,11 @@ def cross_validate(dataset):
     best_acc = 0.0
     best_params = {}
 
-    for batch_size in BATCH_SIZE_LIST:
-        for lr in LR_LIST:
+    for batch_size in tqdm(BATCH_SIZE_LIST):
+        for lr in tqdm(LR_LIST):
             fold_scores = []
 
-            for train_idx, val_idx in skf.split(np.zeros(len(y_labels)), y_labels):
+            for train_idx, val_idx in tqdm(skf.split(np.zeros(len(y_labels)), y_labels), desc=f"Batch size: {batch_size}, LR: {lr}"):
                 train_ds = Subset(dataset, train_idx)
                 val_ds = Subset(dataset, val_idx)
 
@@ -90,15 +91,15 @@ def cross_validate(dataset):
                 fold_scores.append(acc)
 
             avg_score = np.mean(fold_scores)
-            print(f"[lr={lr}, batch_size={batch_size}] CV Acc: {avg_score:.4f}")
+            tqdm.write(f"[lr={lr}, batch_size={batch_size}] CV Acc: {avg_score:.4f}")
 
             if avg_score > best_acc:
                 best_acc = avg_score
                 best_params = {'batch_size': batch_size, 'lr': lr}
 
-    print("Best parameters:")
-    print(best_params)
-    print(f"Best CV Accuracy: {best_acc:.4f}")
+    tqdm.write("Best parameters:")
+    tqdm.write(best_params)
+    tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
 
 def main(default_path=None):
 
@@ -109,15 +110,15 @@ def main(default_path=None):
                         help="Please provide the path to the database directory: ")
     
     arguments = vars(parser.parse_args())
-    print(f"Arguments: {arguments}")
+    tqdm.write(f"Arguments: {arguments}")
     if arguments["db"]:
         default_path = arguments["db"]
-        print(f"Using database path: {default_path}")
+        tqdm.write(f"Using database path: {default_path}")
     if os.path.isdir(default_path):
         dataset = PatchDatasetFromJson(default_path)
         cross_validate(dataset)
     else:
-        print(f"Provided path '{default_path}' is not a valid directory.")
+        tqdm.write(f"Provided path '{default_path}' is not a valid directory.")
         return
 
 
