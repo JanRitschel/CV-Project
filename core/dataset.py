@@ -7,13 +7,14 @@ import json
 import tifffile
 
 class PatchDatasetFromJson(Dataset):
-    def __init__(self, root_path, transform=None):
+    def __init__(self, root_path, transform=None, channel_indices=[0, 1]):
         """
         json_path: path to JSON containing structured patch info
         transform: optional image transforms
         """
         self.transform = transform
         self.root_dir = root_path
+        self.channel_indices = channel_indices
         json_path = os.path.join(self.root_dir, 'meta', 'opensrh.json')
         self.samples = []
 
@@ -97,7 +98,10 @@ class PatchDatasetFromJson(Dataset):
         img_path, label = self.samples[idx]
         if not os.path.exists(img_path):
             raise FileNotFoundError(f"Image file not found: {img_path}")
-        image = tifffile.imread(img_path)
+        if len(self.channel_indices) > 1:
+            image = tifffile.imread(img_path)
+        else:
+            image = tifffile.imread(img_path)[self.channel_indices[0], :, :]
         image = torch.from_numpy(image).float()
         if self.transform:
             image = self.transform(image)
