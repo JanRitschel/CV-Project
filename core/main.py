@@ -1,3 +1,5 @@
+import os
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -98,6 +100,21 @@ def cross_validate(dataset):
     print(best_params)
     print(f"Best CV Accuracy: {best_acc:.4f}")
 
+def main(default_path=None):
+
+    parser = argparse.ArgumentParser(
+        description="Trains a LeViT model with cross-validation on a dataset")
+    #    parser.add_argument("--version", action="version", version='%(prog)s ' + __version__)
+    parser.add_argument("-db", metavar="database", required=True,
+                        help="Please provide the path to the database directory: ")
+    
+    arguments = vars(parser.parse_args())
+    if not default_path:
+        default_path = arguments["database"]
+    if os.path.isdir(default_path):
+        cross_validate(default_path)
+
+
 if __name__ == "__main__":
     # Load dataset
     json_path = '/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset/meta/opensrh.json'
@@ -105,4 +122,4 @@ if __name__ == "__main__":
     dataset = PatchDatasetFromJson(json_path, root_dir)
 
     # Run cross-validation
-    cross_validate(dataset)
+    main(dataset)
