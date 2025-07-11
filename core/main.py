@@ -62,8 +62,8 @@ def evaluate(model, loader):
     return accuracy_score(labels, preds)
 
 
-def cross_validate(dataset):
-    y_labels = [label for _, label in dataset]
+def cross_validate(dataset: PatchDatasetFromJson):
+    y_labels = [label for _, label in dataset.samples]
     skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
 
     best_acc = 0.0
@@ -100,6 +100,7 @@ def cross_validate(dataset):
     tqdm.write("Best parameters:")
     tqdm.write(best_params)
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
+    torch.save(model.state_dict(), "best_model.pth")
 
 def main(default_path=None):
 
