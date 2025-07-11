@@ -129,6 +129,21 @@ def cross_validate(dataset: PatchDatasetFromJson):
     tqdm.write(str(best_params))
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
 
+def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS):
+    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
+    model = get_levit_model(num_classes=NUM_CLASSES).to(DEVICE)
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
+    criterion = nn.CrossEntropyLoss()
+
+    tqdm.write(f"Training final model with batch_size={batch_size}, lr={lr}, epochs={num_epochs}")
+    for epoch in tqdm(range(num_epochs), desc="Final Training Epochs"):
+        train_loss = train_epoch(model, train_loader, criterion, optimizer)
+        tqdm.write(f"Epoch {epoch+1}/{num_epochs}, Loss: {train_loss:.4f}")
+
+    torch.save(model.state_dict(), "final_model.pth")
+    tqdm.write("Final model saved as 'final_model.pth'")
+    return model
+
 def main(default_path=None):
 
     transform = Compose([
@@ -149,7 +164,9 @@ def main(default_path=None):
     if os.path.isdir(default_path):
         
         dataset = PatchDatasetFromJson(default_path, transform=transform)
-        cross_validate(dataset)
+        #cross_validate(dataset)
+        # Use the best hyperparameters found during cross-validation
+        train_final_model(dataset, batch_size=64, lr=1e-2, num_epochs=NUM_EPOCHS)
     else:
         tqdm.write(f"Provided path '{default_path}' is not a valid directory.")
         return
