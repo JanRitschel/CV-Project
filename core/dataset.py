@@ -33,29 +33,40 @@ class PatchDatasetFromJson(Dataset):
         with open(json_path, 'r') as f:
             data = json.load(f)
 
+        # Iterate through the JSON structure
         for patient_id, patient_info in data.items():
             patient_tumor_class = patient_info.get("class", None)
             slides = patient_info.get("slides", {})
             
+            # Check if the patient tumor class is valid
             if patient_tumor_class not in self.label_map:
                 print(f"Warning: Unknown tumor class '{patient_tumor_class}' for {patient_id}")
                 continue
 
+            # Iterate through slides and their patches
             for slide_id, slide_info in slides.items():
                 for patch_group, patches in slide_info.items():
                     if not patch_group.endswith("_patches"):
                         continue
                     
                     if patch_group == "tumor_patches":
+                        # Avoid using the patient tumor class if it is "normal" or None
+                        if patient_tumor_class == "normal" or patient_tumor_class is None:
+                            print(f"Warning: Patient {patient_id} has 'normal' or no class defined but is in 'tumor_patches'. Skipping.")
+                            continue
+                        # Use the patient tumor class as label
                         label_str = patient_tumor_class
                     else:
+                        # Use the patch group name as label since normal and nondiagnostic patches are not tumor patches
                         label_str = patch_group.replace("_patches", "")
 
+                    # Get the label index from the label map
                     label_idx = self.label_map.get(label_str)
                     if label_idx is None:
                         print(f"Unknown label '{label_str}', skipping.")
                         continue
 
+                    # Append each patch with its label in the samples list
                     for rel_path in patches:
                         full_path = os.path.join(self.root_dir, rel_path)
                         self.samples.append((full_path, label_idx))
@@ -66,10 +77,21 @@ class PatchDatasetFromJson(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
+        """
+        Retrieves the image and label for a given index.
+        Args:
+            idx (int): Index of the sample to retrieve.
+        Returns:
+            tuple: (image, label) where image is a numpy array and label is a torch tensor.
+        Raises:
+            FileNotFoundError: If the image file does not exist.
+            IOError: If the image cannot be read.
+            KeyError: If the label is not found in the label map.
+        """
+
         img_path, label = self.samples[idx]
         if not os.path.exists(img_path):
             raise FileNotFoundError(f"Image file not found: {img_path}")
-        # convert tif image to numpy array
         image = tifffile.imread(img_path)
         if self.transform:
             image = self.transform(image)
