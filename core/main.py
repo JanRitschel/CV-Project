@@ -87,11 +87,16 @@ def cross_validate(dataset: PatchDatasetFromJson):
     best_acc = 0.0
     best_params = {}
 
+    # Iterate over hyperparameter combinations
+    tqdm.write("Starting cross-validation...")
     for batch_size in tqdm(BATCH_SIZE_LIST):
         for lr in tqdm(LR_LIST):
             fold_scores = []
 
+            #Perform Cross validation
+            tqdm.write(f"Running cross validation over {len(list(skf.split(np.zeros(len(y_labels)), y_labels)))} folds with batch size {batch_size} and learning rate {lr}")
             for train_idx, val_idx in tqdm(skf.split(np.zeros(len(y_labels)), y_labels), desc=f"Batch size: {batch_size}, LR: {lr}"):
+                tqdm.write(f"Training on fold with {len(train_idx)} samples, validating on {len(val_idx)} samples")
                 train_ds = Subset(dataset, train_idx)
                 val_ds = Subset(dataset, val_idx)
 
@@ -102,23 +107,26 @@ def cross_validate(dataset: PatchDatasetFromJson):
                 optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
                 criterion = nn.CrossEntropyLoss()
 
-                for _ in range(NUM_EPOCHS):
+                for _ in tqdm(range(NUM_EPOCHS), desc="Training Epochs"):
                     train_epoch(model, train_loader, criterion, optimizer)
 
                 acc = evaluate(model, val_loader)
+                tqdm.write(f"Fold Accuracy: {acc:.4f}")
                 fold_scores.append(acc)
 
+            # Calculate average score for the current hyperparameter combination
             avg_score = np.mean(fold_scores)
             tqdm.write(f"[lr={lr}, batch_size={batch_size}] CV Acc: {avg_score:.4f}")
 
+            # Save the best model based on average score
             if avg_score > best_acc:
                 best_acc = avg_score
                 best_params = {'batch_size': batch_size, 'lr': lr}
+                torch.save(model.state_dict(), "best_model.pth")
 
     tqdm.write("Best parameters:")
-    tqdm.write(best_params)
+    tqdm.write(str(best_params))
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
-    torch.save(model.state_dict(), "best_model.pth")
 
 def main(default_path=None):
 
