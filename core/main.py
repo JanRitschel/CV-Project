@@ -72,7 +72,7 @@ def evaluate(model, loader):
     preds, labels = [], []
     with torch.no_grad():
         for x, y in loader:
-            x = torch.tensor(x, dtype=torch.float32).to(DEVICE)
+            x = x.to(dtype=torch.float32, device=DEVICE)
             out = model(x)
             pred = torch.argmax(out, dim=1).cpu().numpy()
             preds.extend(pred)
