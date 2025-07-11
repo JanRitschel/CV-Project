@@ -22,7 +22,7 @@ LR_LIST = [1e-3]
 K_SPLITS = 3
 
 
-def get_levit_model(model_name="levit_128s", num_classes=8):
+def get_levit_model(model_name="levit_128s", num_classes=8, input_channels=2):
     model = timm.create_model(model_name, pretrained=False, num_classes=num_classes)
 
     # Find the first Conv2d layer with 3 input channels
@@ -30,7 +30,7 @@ def get_levit_model(model_name="levit_128s", num_classes=8):
         if isinstance(module, torch.nn.Conv2d) and module.in_channels == 3:
             print(f"Replacing input layer: {name}")
             new_conv = torch.nn.Conv2d(
-                2, module.out_channels,
+                input_channels, module.out_channels,
                 kernel_size=module.kernel_size,
                 stride=module.stride,
                 padding=module.padding,
