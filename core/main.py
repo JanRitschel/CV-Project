@@ -123,7 +123,7 @@ def main(default_path=None):
 
 if __name__ == "__main__":
     # Load dataset
-    json_path = '/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset/meta/opensrh.json'
+    root_path = '/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset'
 
     # Run cross-validation
-    main(json_path)
+    main(root_path)

@@ -7,12 +7,14 @@ import json
 import tifffile
 
 class PatchDatasetFromJson(Dataset):
-    def __init__(self, json_path, transform=None):
+    def __init__(self, root_path, transform=None):
         """
         json_path: path to JSON containing structured patch info
         transform: optional image transforms
         """
         self.transform = transform
+        self.root_dir = root_path
+        json_path = os.path.join(self.root_dir, 'meta', 'opensrh.json')
         self.samples = []
 
         # full set of possible labels
