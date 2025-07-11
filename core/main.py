@@ -14,11 +14,12 @@ from torchvision.transforms import Compose, Resize
 
 # Constants
 NUM_CLASSES = 8
-NUM_EPOCHS = 5
+NUM_EPOCHS = 1
 NUM_WORKERS = 4
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE_LIST = [32]
 LR_LIST = [1e-3]
+K_SPLITS = 3
 
 
 def get_levit_model(model_name="levit_128s", num_classes=8):
@@ -82,7 +83,7 @@ def evaluate(model, loader):
 
 def cross_validate(dataset: PatchDatasetFromJson):
     y_labels = [label for _, label in dataset.samples]
-    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    skf = StratifiedKFold(n_splits=K_SPLITS, shuffle=True, random_state=42)
 
     best_acc = 0.0
     best_params = {}
