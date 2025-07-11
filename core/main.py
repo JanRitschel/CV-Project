@@ -10,35 +10,53 @@ import timm
 import numpy as np
 from dataset import PatchDatasetFromJson
 from tqdm import tqdm
+from torchvision.transforms import Compose, Resize
 
 # Constants
 NUM_CLASSES = 8
 NUM_EPOCHS = 5
 NUM_WORKERS = 4
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE_LIST = [16, 32]
-LR_LIST = [1e-3, 3e-4]
+BATCH_SIZE_LIST = [32]
+LR_LIST = [1e-3]
 
 
 def get_levit_model(model_name="levit_128s", num_classes=8):
     model = timm.create_model(model_name, pretrained=False, num_classes=num_classes)
-    # Modify input layer for 2 channels
-    old_conv = model.patch_embed.proj
-    new_conv = nn.Conv2d(
-        2, old_conv.out_channels, kernel_size=old_conv.kernel_size,
-        stride=old_conv.stride, padding=old_conv.padding, bias=old_conv.bias
-    )
-    with torch.no_grad():
-        new_conv.weight[:, :2] = old_conv.weight[:, :2]
-    model.patch_embed.proj = new_conv
+
+    # Find the first Conv2d layer with 3 input channels
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv2d) and module.in_channels == 3:
+            print(f"Replacing input layer: {name}")
+            new_conv = torch.nn.Conv2d(
+                2, module.out_channels,
+                kernel_size=module.kernel_size,
+                stride=module.stride,
+                padding=module.padding,
+                bias=module.bias is not None
+            )
+            with torch.no_grad():
+                new_conv.weight[:, :2] = module.weight[:, :2]  # copy 2 of 3 input channels
+            # set the new conv in the model
+            set_module_by_name(model, name, new_conv)
+            break
+
     return model
+
+# Helper function to replace a nested module by name
+def set_module_by_name(model, name, module):
+    parts = name.split('.')
+    for p in parts[:-1]:
+        model = getattr(model, p)
+    setattr(model, parts[-1], module)
+
 
 
 def train_epoch(model, loader, criterion, optimizer):
     model.train()
     running_loss = 0
-    for x, y in loader:
-        x = torch.tensor(x, dtype=torch.float32).to(DEVICE)
+    for x, y in tqdm(loader):
+        x = x.to(dtype=torch.float32, device=DEVICE)
         y = y.to(DEVICE)
         optimizer.zero_grad()
         logits = model(x)
@@ -104,6 +122,10 @@ def cross_validate(dataset: PatchDatasetFromJson):
 
 def main(default_path=None):
 
+    transform = Compose([
+        Resize((224, 224))  # expects torch.Tensor C×H×W
+    ])
+
     parser = argparse.ArgumentParser(
         description="Trains a LeViT model with cross-validation on a dataset")
     #    parser.add_argument("--version", action="version", version='%(prog)s ' + __version__)
@@ -116,7 +138,8 @@ def main(default_path=None):
         default_path = arguments["db"]
         tqdm.write(f"Using database path: {default_path}")
     if os.path.isdir(default_path):
-        dataset = PatchDatasetFromJson(default_path)
+        
+        dataset = PatchDatasetFromJson(default_path, transform=transform)
         cross_validate(dataset)
     else:
         tqdm.write(f"Provided path '{default_path}' is not a valid directory.")

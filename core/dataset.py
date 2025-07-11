@@ -98,6 +98,7 @@ class PatchDatasetFromJson(Dataset):
         if not os.path.exists(img_path):
             raise FileNotFoundError(f"Image file not found: {img_path}")
         image = tifffile.imread(img_path)
+        image = torch.from_numpy(image).float()
         if self.transform:
             image = self.transform(image)
         return image, torch.tensor(label, dtype=torch.long)
