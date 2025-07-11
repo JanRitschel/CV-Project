@@ -105,10 +105,9 @@ class PatchDatasetFromJson(Dataset):
 
 if __name__ == "__main__":
     dataset = PatchDatasetFromJson(
-    json_path='/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset/meta/opensrh.json',
-    root_dir='/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset/',
-    transform=None  # Add your transforms here if needed
-    )
+        root_path='/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset/meta/opensrh.json',
+        transform=None  # Add your transforms here if needed
+        )
     print(f"Dataset size: {len(dataset)}")
 
     # Print a sample to verify
