@@ -3,7 +3,7 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, random_split
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score
 import timm
