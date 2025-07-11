@@ -69,6 +69,11 @@ class PatchDatasetFromJson(Dataset):
                     # Append each patch with its label in the samples list
                     for rel_path in patches:
                         full_path = os.path.join(self.root_dir, rel_path)
+                        # Check if the file exists
+                        if not os.path.exists(full_path):
+                            print(f"Warning: Image file not found: {full_path}")
+                            continue
+                        # Append the full path and label index to samples
                         self.samples.append((full_path, label_idx))
 
         print(f"Loaded {len(self.samples)} patches from JSON.")
