@@ -14,11 +14,12 @@ from torchvision.transforms import Compose, Resize
 
 # Constants
 NUM_CLASSES = 8
-NUM_EPOCHS = 1
+NUM_EPOCHS = 20
+NUM_CROSS_VAL_EPOCHS = 3  # Number of epochs for each cross-validation fold
 NUM_WORKERS = 4
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE_LIST = [32]
-LR_LIST = [1e-3]
+BATCH_SIZE_LIST = [16,32,64]
+LR_LIST = [1e-2, 1e-3, 1e-4]
 K_SPLITS = 3
 
 
@@ -108,7 +109,7 @@ def cross_validate(dataset: PatchDatasetFromJson):
                 optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
                 criterion = nn.CrossEntropyLoss()
 
-                for _ in tqdm(range(NUM_EPOCHS), desc="Training Epochs"):
+                for _ in tqdm(range(NUM_CROSS_VAL_EPOCHS), desc="Training Epochs"):
                     train_epoch(model, train_loader, criterion, optimizer)
 
                 acc = evaluate(model, val_loader)
@@ -170,10 +171,26 @@ def main(default_path=None):
         train_size = int(0.75 * len(dataset))
         val_size = len(dataset) - train_size
         train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+        
+        # Split dataset into training and validation sets
+        train_size = int(0.5 * len(train_dataset))
+        val_size = len(train_dataset) - train_size
+        cross_train_dataset, cross_val_dataset = random_split(dataset, [train_size, val_size])
 
-        #cross_validate(dataset)
+
+        best_batch, best_lr = cross_validate(cross_train_dataset)
+        
         # Use the best hyperparameters found during cross-validation
-        train_final_model(train_dataset, batch_size=64, lr=1e-2, num_epochs=NUM_EPOCHS)
+        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS)
+        # Evaluate on validation set
+        val_loader = DataLoader(val_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
+        val_acc = evaluate(final_model, val_loader)
+        tqdm.write(f"Validation Accuracy: {val_acc:.4f}")
+        with open("results.txt", "w") as f:
+            print(f"Best Batch Size: {best_batch}", file=f)
+            print(f"Best Learning Rate: {best_lr}", file=f)
+            print(f"Validation Accuracy: {val_acc:.4f}", file=f)
+        
     else:
         tqdm.write(f"Provided path '{default_path}' is not a valid directory.")
         return
