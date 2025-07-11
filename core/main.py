@@ -166,9 +166,14 @@ def main(default_path=None):
     if os.path.isdir(default_path):
         
         dataset = PatchDatasetFromJson(default_path, transform=transform)
+        # Split dataset into training and validation sets
+        train_size = int(0.75 * len(dataset))
+        val_size = len(dataset) - train_size
+        train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
         #cross_validate(dataset)
         # Use the best hyperparameters found during cross-validation
-        train_final_model(dataset, batch_size=64, lr=1e-2, num_epochs=NUM_EPOCHS)
+        train_final_model(train_dataset, batch_size=64, lr=1e-2, num_epochs=NUM_EPOCHS)
     else:
         tqdm.write(f"Provided path '{default_path}' is not a valid directory.")
         return
