@@ -7,13 +7,11 @@ import json
 import tifffile
 
 class PatchDatasetFromJson(Dataset):
-    def __init__(self, json_path, root_dir, transform=None):
+    def __init__(self, json_path, transform=None):
         """
         json_path: path to JSON containing structured patch info
-        root_dir: dataset root
         transform: optional image transforms
         """
-        self.root_dir = root_dir
         self.transform = transform
         self.samples = []
 

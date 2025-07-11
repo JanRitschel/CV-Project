@@ -109,17 +109,21 @@ def main(default_path=None):
                         help="Please provide the path to the database directory: ")
     
     arguments = vars(parser.parse_args())
-    if not default_path:
-        default_path = arguments["database"]
+    print(f"Arguments: {arguments}")
+    if arguments["db"]:
+        default_path = arguments["db"]
+        print(f"Using database path: {default_path}")
     if os.path.isdir(default_path):
-        cross_validate(default_path)
+        dataset = PatchDatasetFromJson(default_path)
+        cross_validate(dataset)
+    else:
+        print(f"Provided path '{default_path}' is not a valid directory.")
+        return
 
 
 if __name__ == "__main__":
     # Load dataset
     json_path = '/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset/meta/opensrh.json'
-    root_dir = '/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset/'
-    dataset = PatchDatasetFromJson(json_path, root_dir)
 
     # Run cross-validation
-    main(dataset)
+    main(json_path)
