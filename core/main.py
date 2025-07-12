@@ -166,7 +166,7 @@ def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3
         model.eval()
         val_loss = 0
         with torch.no_grad():
-            for x, y in val_loader:
+            for x, y in tqdm(val_loader, desc="Validation"):
                 x = x.to(dtype=torch.float32, device=DEVICE)
                 y = y.to(DEVICE)
                 logits = model(x)
@@ -228,7 +228,7 @@ def main(default_path=None):
         # Use the best hyperparameters found during cross-validation
         best_batch = 16
         best_lr = 1e-4
-        #NUM_EPOCHS = 1
+        NUM_EPOCHS = 2
         
         #get test loader and train model
         val_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)

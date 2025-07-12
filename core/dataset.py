@@ -7,7 +7,7 @@ import json
 import tifffile
 
 class PatchDatasetFromJson(Dataset):
-    def __init__(self, root_path, transform=None, channel_indices=[0, 1], json_samples_path=None):
+    def __init__(self, root_path, transform=None, channel_indices=[0, 1]):
         """
         json_path: path to JSON containing structured patch info
         transform: optional image transforms
@@ -16,6 +16,7 @@ class PatchDatasetFromJson(Dataset):
         self.root_dir = root_path
         self.channel_indices = channel_indices
         json_path = os.path.join(self.root_dir, 'meta', 'opensrh.json')
+        json_samples_path = os.path.join(self.root_dir, 'meta', 'samples.json')
         self.samples = []
 
         # full set of possible labels
@@ -36,7 +37,7 @@ class PatchDatasetFromJson(Dataset):
 
         # If "Samples" is "None" iterate through the JSON structure to build the 
         # samples list otherwise use the provided samples
-        if not json_samples_path:
+        if not os.path.exists(json_samples_path):
             for patient_id, patient_info in data.items():
                 patient_tumor_class = patient_info.get("class", None)
                 slides = patient_info.get("slides", {})
@@ -82,12 +83,8 @@ class PatchDatasetFromJson(Dataset):
             with open(os.path.join(self.root_dir, 'meta', 'samples.json'), 'w') as f:
                 json.dump(self.samples, f, indent=4)
         else:
-            # If json_samples is provided, use it directly
-            if os.path.exists(json_samples_path):
-                with open(json_samples_path, 'r') as f:
-                    self.samples = json.load(f)
-            else:
-                raise ValueError("json_samples must be a path to a JSON file")
+            with open(json_samples_path, 'r') as f:
+                self.samples = json.load(f)
         
         print(f"Loaded {len(self.samples)} patches from JSON.")
 
