@@ -21,10 +21,11 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE_LIST = [16,32,64]
 LR_LIST = [1e-2, 1e-3, 1e-4]
 K_SPLITS = 3
+DROP_RATE = 0.2  # Dropout rate for the model
 
 
 def get_levit_model(model_name="levit_128s", num_classes=8, input_channels=2):
-    model = timm.create_model(model_name, pretrained=False, num_classes=num_classes)
+    model = timm.create_model(model_name, pretrained=False, num_classes=num_classes, drop_rate = DROP_RATE)
 
     # Find the first Conv2d layer with 3 input channels
     for name, module in model.named_modules():
@@ -144,7 +145,7 @@ def cross_validate(dataset: PatchDatasetFromJson):
 
 def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS):
     train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
-    model = get_levit_model(num_classes=NUM_CLASSES).to(DEVICE)
+    model = get_levit_model(model_name="levit_384",num_classes=NUM_CLASSES).to(DEVICE)
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
     criterion = nn.CrossEntropyLoss()
 
@@ -183,21 +184,26 @@ def main(default_path=None):
         random_generator = torch.Generator().manual_seed(42)
         train_dataset, val_dataset = random_split(dataset, [train_size, val_size], random_generator)
         
+        """
         # Split dataset into training and validation sets
         train_size = int(0.5 * len(train_dataset))
         val_size = len(train_dataset) - train_size
         cross_train_dataset, cross_val_dataset = random_split(train_dataset, [train_size, val_size], random_generator)
 
-        """ 
+        
         best_batch, best_lr = cross_validate(cross_train_dataset)
          """
         # Use the best hyperparameters found during cross-validation
         best_batch = 16
         best_lr = 1e-4
-        NUM_EPOCHS = 1
-        #final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS)
-        # Evaluate on validation set
-        train_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
+        #NUM_EPOCHS = 1
+        
+        #get test loader and train model
+        val_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
+        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS)
+        
+        # Evaluate on training set
+        """ train_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
         model = get_levit_model(model_name="levit_128s", num_classes=8, input_channels=2)
         model.load_state_dict(torch.load("/home/group.kurse/cviwo021/CV-Project/core/final_model.pth"))
         model.eval()
@@ -207,21 +213,23 @@ def main(default_path=None):
         total = 0
 
         with torch.no_grad():
-            for inputs, labels in train_loader:
+            for inputs, labels in tqdm(train_loader, desc="Evaluating on training set"):
                 outputs = model(inputs.to(DEVICE))
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels.to(DEVICE)).sum().item()
 
         train_accuracy = correct / total
-        print(f"Train Accuracy: {train_accuracy:.2%}")
-        """ val_acc = evaluate(final_model, val_loader)
+        print(f"Train Accuracy: {train_accuracy:.2%}") """
+        
+        #evaluate on test set
+        val_acc = evaluate(final_model, val_loader)
         tqdm.write(f"Validation Accuracy: {val_acc:.4f}")
-        with open("/home/group.kurse/cviwo021/RESULTS/results.txt", "w") as f:
+        with open("/home/group.kurse/cviwo021/RESULTS/results_big_model.txt", "w") as f:
             print(f"Best Batch Size: {best_batch}", file=f)
             print(f"Best Learning Rate: {best_lr}", file=f)
             print(f"Validation Accuracy: {val_acc:.4f}", file=f)
-         """
+        
     else:
         tqdm.write(f"Provided path '{default_path}' is not a valid directory.")
         return

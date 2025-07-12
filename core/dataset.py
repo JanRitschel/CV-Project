@@ -83,7 +83,7 @@ class PatchDatasetFromJson(Dataset):
                 json.dump(self.samples, f, indent=4)
         else:
             # If json_samples is provided, use it directly
-            if isinstance(json_samples_path, str):
+            if os.path.exists(json_samples_path):
                 with open(json_samples_path, 'r') as f:
                     self.samples = json.load(f)
             else:
