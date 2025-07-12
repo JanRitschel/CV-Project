@@ -219,7 +219,7 @@ def main(default_path=None):
         train_size = int(0.75 * len(dataset))
         val_size = len(dataset) - train_size
         random_generator = torch.Generator().manual_seed(42)
-        train_dataset, val_dataset = random_split(dataset, [train_size, val_size], random_generator)
+        train_dataset, test_dataset = random_split(dataset, [train_size, val_size], random_generator)
         
         """
         # Split dataset into training and validation sets
@@ -233,11 +233,11 @@ def main(default_path=None):
         # Use the best hyperparameters found during cross-validation
         best_batch = 16
         best_lr = 1e-4
-        NUM_EPOCHS = 2
+        #NUM_EPOCHS = 2
         
         #get test loader and train model
-        val_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
-        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS, target_file=arguments["lf"])
+        test_loader = DataLoader(test_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
+        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS, loss_file=arguments["lf"])
         
         # Evaluate on training set
         """ train_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
@@ -260,12 +260,12 @@ def main(default_path=None):
         print(f"Train Accuracy: {train_accuracy:.2%}") """
         
         #evaluate on test set
-        val_acc = evaluate(final_model, val_loader)
-        tqdm.write(f"Validation Accuracy: {val_acc:.4f}")
-        with open("/home/group.kurse/cviwo021/RESULTS/results_big_model.txt", "w") as f:
+        test_acc = evaluate(final_model, test_loader)
+        tqdm.write(f"Test Accuracy: {test_acc:.4f}")
+        with open(arguments["lf"], "a") as f:
             print(f"Best Batch Size: {best_batch}", file=f)
             print(f"Best Learning Rate: {best_lr}", file=f)
-            print(f"Validation Accuracy: {val_acc:.4f}", file=f)
+            print(f"Test Accuracy: {test_acc:.4f}", file=f)
         
     else:
         tqdm.write(f"Provided path '{default_path}' is not a valid directory.")
