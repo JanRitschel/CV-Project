@@ -143,18 +143,50 @@ def cross_validate(dataset: PatchDatasetFromJson):
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
     return best_tuple
 
-def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS):
-    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
-    model = get_levit_model(model_name="levit_384",num_classes=NUM_CLASSES).to(DEVICE)
+def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3, val_split=0.2):
+    # Split dataset in train/val
+    train_size = int((1 - val_split) * len(dataset))
+    val_size = len(dataset) - train_size
+    train_ds, val_ds = random_split(dataset, [train_size, val_size], torch.Generator().manual_seed(42))
+
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
+    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=NUM_WORKERS)
+
+    model = get_levit_model(model_name="levit_384", num_classes=NUM_CLASSES).to(DEVICE)
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
     criterion = nn.CrossEntropyLoss()
+
+    best_val_loss = float('inf')
+    epochs_no_improve = 0
 
     tqdm.write(f"Training final model with batch_size={batch_size}, lr={lr}, epochs={num_epochs}")
     for epoch in tqdm(range(num_epochs), desc="Final Training Epochs"):
         train_loss = train_epoch(model, train_loader, criterion, optimizer)
-        tqdm.write(f"Epoch {epoch+1}/{num_epochs}, Loss: {train_loss:.4f}")
+        # Berechne Validierungs-Loss
+        model.eval()
+        val_loss = 0
+        with torch.no_grad():
+            for x, y in val_loader:
+                x = x.to(dtype=torch.float32, device=DEVICE)
+                y = y.to(DEVICE)
+                logits = model(x)
+                loss = criterion(logits, y)
+                val_loss += loss.item()
+        val_loss /= len(val_loader)
 
-    torch.save(model.state_dict(), "final_model.pth")
+        tqdm.write(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            epochs_no_improve = 0
+            torch.save(model.state_dict(), "final_model.pth")
+        else:
+            epochs_no_improve += 1
+
+        if epochs_no_improve >= patience:
+            tqdm.write(f"Early stopping triggered after {epoch+1} epochs.")
+            break
+
     tqdm.write("Final model saved as 'final_model.pth'")
     return model
 
