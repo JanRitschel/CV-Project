@@ -143,7 +143,7 @@ def cross_validate(dataset: PatchDatasetFromJson):
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
     return best_tuple
 
-def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3, val_split=0.2):
+def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3, val_split=0.2, loss_file=None):
     # Split dataset in train/val
     train_size = int((1 - val_split) * len(dataset))
     val_size = len(dataset) - train_size
@@ -175,6 +175,9 @@ def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3
         val_loss /= len(val_loader)
 
         tqdm.write(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        # Save losses in txt file
+        with open(loss_file, "a") as f:
+            f.write(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}\n")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -201,7 +204,9 @@ def main(default_path=None):
     #    parser.add_argument("--version", action="version", version='%(prog)s ' + __version__)
     parser.add_argument("-db", metavar="database", required=True,
                         help="Please provide the path to the database directory: ")
-    
+    parser.add_argument("-lf", metavar="loss_file", required=True,
+                        help="Please provide the path to the loss file: ")
+
     arguments = vars(parser.parse_args())
     tqdm.write(f"Arguments: {arguments}")
     if arguments["db"]:
@@ -232,7 +237,7 @@ def main(default_path=None):
         
         #get test loader and train model
         val_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
-        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS)
+        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS, target_file=arguments["lf"])
         
         # Evaluate on training set
         """ train_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
