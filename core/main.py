@@ -188,23 +188,40 @@ def main(default_path=None):
         val_size = len(train_dataset) - train_size
         cross_train_dataset, cross_val_dataset = random_split(train_dataset, [train_size, val_size], random_generator)
 
-
+        """ 
         best_batch, best_lr = cross_validate(cross_train_dataset)
-        
+         """
         # Use the best hyperparameters found during cross-validation
-        """ best_batch = 32
-        best_lr = 1e-3
-        NUM_EPOCHS = 1 """
-        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS)
+        best_batch = 16
+        best_lr = 1e-4
+        NUM_EPOCHS = 1
+        #final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS)
         # Evaluate on validation set
-        val_loader = DataLoader(val_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
-        val_acc = evaluate(final_model, val_loader)
+        train_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
+        model = get_levit_model(model_name="levit_128s", num_classes=8, input_channels=2)
+        model.load_state_dict(torch.load("/home/group.kurse/cviwo021/CV-Project/core/final_model.pth"))
+        model.eval()
+        model = model.to(DEVICE)
+
+        correct = 0
+        total = 0
+
+        with torch.no_grad():
+            for inputs, labels in train_loader:
+                outputs = model(inputs.to(DEVICE))
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels.to(DEVICE)).sum().item()
+
+        train_accuracy = correct / total
+        print(f"Train Accuracy: {train_accuracy:.2%}")
+        """ val_acc = evaluate(final_model, val_loader)
         tqdm.write(f"Validation Accuracy: {val_acc:.4f}")
         with open("/home/group.kurse/cviwo021/RESULTS/results.txt", "w") as f:
             print(f"Best Batch Size: {best_batch}", file=f)
             print(f"Best Learning Rate: {best_lr}", file=f)
             print(f"Validation Accuracy: {val_acc:.4f}", file=f)
-        
+         """
     else:
         tqdm.write(f"Provided path '{default_path}' is not a valid directory.")
         return
