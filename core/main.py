@@ -73,7 +73,7 @@ def evaluate(model, loader):
     model.eval()
     preds, labels = [], []
     with torch.no_grad():
-        for x, y in loader:
+        for x, y in tqdm(loader, desc="Evaluating"):
             x = x.to(dtype=torch.float32, device=DEVICE)
             out = model(x)
             pred = torch.argmax(out, dim=1).cpu().numpy()
@@ -83,7 +83,17 @@ def evaluate(model, loader):
 
 
 def cross_validate(dataset: PatchDatasetFromJson):
-    y_labels = [label for _, label in dataset.samples]
+    if isinstance(dataset, Subset):
+        base_dataset = dataset.dataset
+        if isinstance(base_dataset, Subset):
+            base_base_dataset = base_dataset.dataset
+            indices = dataset.indices
+            y_labels = [base_base_dataset.samples[i][1] for i in indices]
+        else:   
+            indices = dataset.indices
+            y_labels = [base_dataset.samples[i][1] for i in indices]
+    else:
+        y_labels = [label for _, label in dataset.samples]
     skf = StratifiedKFold(n_splits=K_SPLITS, shuffle=True, random_state=42)
 
     best_acc = 0.0
@@ -170,23 +180,27 @@ def main(default_path=None):
         # Split dataset into training and validation sets
         train_size = int(0.75 * len(dataset))
         val_size = len(dataset) - train_size
-        train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+        random_generator = torch.Generator().manual_seed(42)
+        train_dataset, val_dataset = random_split(dataset, [train_size, val_size], random_generator)
         
         # Split dataset into training and validation sets
         train_size = int(0.5 * len(train_dataset))
         val_size = len(train_dataset) - train_size
-        cross_train_dataset, cross_val_dataset = random_split(dataset, [train_size, val_size])
+        cross_train_dataset, cross_val_dataset = random_split(train_dataset, [train_size, val_size], random_generator)
 
 
         best_batch, best_lr = cross_validate(cross_train_dataset)
         
         # Use the best hyperparameters found during cross-validation
+        """ best_batch = 32
+        best_lr = 1e-3
+        NUM_EPOCHS = 1 """
         final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS)
         # Evaluate on validation set
         val_loader = DataLoader(val_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
         val_acc = evaluate(final_model, val_loader)
         tqdm.write(f"Validation Accuracy: {val_acc:.4f}")
-        with open("results.txt", "w") as f:
+        with open("/home/group.kurse/cviwo021/RESULTS/results.txt", "w") as f:
             print(f"Best Batch Size: {best_batch}", file=f)
             print(f"Best Learning Rate: {best_lr}", file=f)
             print(f"Validation Accuracy: {val_acc:.4f}", file=f)
