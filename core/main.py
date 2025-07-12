@@ -143,7 +143,7 @@ def cross_validate(dataset: PatchDatasetFromJson):
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
     return best_tuple
 
-def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3, val_split=0.2, loss_file=None):
+def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3, val_split=0.2, loss_file=None, num_chanels=2):
     # Split dataset in train/val
     train_size = int((1 - val_split) * len(dataset))
     val_size = len(dataset) - train_size
@@ -152,7 +152,7 @@ def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=NUM_WORKERS)
 
-    model = get_levit_model(model_name="levit_384", num_classes=NUM_CLASSES).to(DEVICE)
+    model = get_levit_model(model_name="levit_384", num_classes=NUM_CLASSES, input_channels=num_chanels).to(DEVICE)
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
     criterion = nn.CrossEntropyLoss()
 
@@ -214,7 +214,7 @@ def main(default_path=None):
         tqdm.write(f"Using database path: {default_path}")
     if os.path.isdir(default_path):
         
-        dataset = PatchDatasetFromJson(default_path, transform=transform)
+        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=[0])  # Use first two channels
         # Split dataset into training and validation sets
         train_size = int(0.75 * len(dataset))
         val_size = len(dataset) - train_size
@@ -237,7 +237,7 @@ def main(default_path=None):
         
         #get test loader and train model
         test_loader = DataLoader(test_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
-        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS, loss_file=arguments["lf"])
+        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS, loss_file=arguments["lf"], num_chanels=1)
         
         # Evaluate on training set
         """ train_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
