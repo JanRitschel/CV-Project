@@ -111,6 +111,7 @@ class PatchDatasetFromJson(Dataset):
             image = tifffile.imread(img_path)
         else:
             image = tifffile.imread(img_path)[self.channel_indices[0], :, :]
+            image = np.expand_dims(image, axis=0)  # Add channel dimension if only one channel is used
         image = torch.from_numpy(image).float()
         if self.transform:
             image = self.transform(image)

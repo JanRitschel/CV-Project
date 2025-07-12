@@ -39,7 +39,7 @@ def get_levit_model(model_name="levit_128s", num_classes=8, input_channels=2):
                 bias=module.bias is not None
             )
             with torch.no_grad():
-                new_conv.weight[:, :2] = module.weight[:, :2]  # copy 2 of 3 input channels
+                new_conv.weight[:, :input_channels] = module.weight[:, :input_channels]  # copy input_channels of 3 input channels
             # set the new conv in the model
             set_module_by_name(model, name, new_conv)
             break
@@ -214,7 +214,7 @@ def main(default_path=None):
         tqdm.write(f"Using database path: {default_path}")
     if os.path.isdir(default_path):
         
-        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=[0])  # Use first two channels
+        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=[1])  # Use first two channels
         # Split dataset into training and validation sets
         train_size = int(0.75 * len(dataset))
         val_size = len(dataset) - train_size
