@@ -1,6 +1,6 @@
 # Glioma Detection from SRH images
 
-This project trains a LeViT model on a dataset of annotated SRH images of glioma to investigate its efficacy at indentifiying 6 types of tumor and specifically to investigate the accuracy of the 2 channels of an SRH model individually and in comparison to the full image.
+This project trains a LeViT model on a dataset of annotated SRH images of glioma to investigate its efficacy at identifiying 6 types of tumor and specifically to investigate the accuracy of the 2 channels of an SRH model individually and in comparison to the full image.
 
 ## Table of Contents
 
@@ -122,8 +122,8 @@ The first step of the project was to perform cross validation to obtain good hyp
 In our experimentation we found the most effective learning rate and batch size to be 0.0001 and 16, which are the defaults for all further uses.
 
 When applied to our dataset the most effective classifier was to use both channels, which resulted in an accuracy of about 86.06% after 14 epochs of training.
-The first channel of the images, the C-H-channel, which shows mostly proteins and lipids, resulting in a structural image, resulted in an accuracy of 64.42% after 9 epochs of training.
-The second channel of the images resulted in a very low accuracy of 26.06% after 4 epochs of training.
+The first channel of the images, which shows mostly lipids, resulted in an accuracy of 64.42% after 9 epochs of training.
+The second channel of the images, showing cellular structures, resulted in a very low accuracy of 26.06% after 4 epochs of training.
 
 ## Literature
 
