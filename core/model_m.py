@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import accuracy_score
+from typing import Optional
 import timm
 from tqdm import tqdm
 import copy
@@ -99,7 +100,7 @@ def evaluate(model: nn.Module, loader: DataLoader) -> float:
     return accuracy_score(labels, preds)
 
 def train_final_model(dataset: PatchDatasetFromJson, batch_size: int, lr: float, num_epochs: int = gv.NUM_EPOCHS, patience: int = 3,
-                      val_split: float = 0.2, loss_file: str|None = None, num_chanels: int = 2,
+                      val_split: float = 0.2, loss_file: Optional[str] = None, num_chanels: int = 2,
                       model_path: str = "final_model.pth") -> nn.Module:
     """Train the final model on a given dataset.
 

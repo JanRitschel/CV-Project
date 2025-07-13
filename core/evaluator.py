@@ -1,9 +1,13 @@
 import os
+import numpy as np
 import torch
+import umap
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 from torchvision.transforms import Compose, Resize
 from torch.utils.data import DataLoader
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 from dataset import PatchDatasetFromJson
 from model_m import get_levit_model
@@ -11,7 +15,10 @@ from helpers import read_args
 import global_vars as gv
 
 def evaluate_model(default_path:str, model_path:str, model_architecture:str = "levit_384") -> None:
-    """Evaluate a pre-trained model on a dataset.
+    """Evaluate a pre-trained model on a dataset. 
+    This function loads a model from the specified path, evaluates it on the test set of the dataset,
+    and prints the accuracy. It also generates a UMAP projection of the model's outputs and
+    a confusion matrix for the predictions.
 
     Args:
         default_path (str): Path to the dataset directory.
@@ -44,17 +51,55 @@ def evaluate_model(default_path:str, model_path:str, model_architecture:str = "l
     test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, num_workers=gv.NUM_WORKERS)
 
     # Evaluate the model on the test set
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for inputs, labels in tqdm(test_loader, desc="Evaluating on test set"):
-            outputs = model(inputs.to(gv.DEVICE))
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels.to(gv.DEVICE)).sum().item()
+    outputs, preds, labels = get_predictions_and_labels(model, test_loader)
 
-    test_accuracy = correct / total
-    tqdm.write(f"Test Accuracy: {test_accuracy:.2%}")
+    # Accuracy
+    accuracy = (np.array(preds) == np.array(labels)).mean()
+    tqdm.write(f"Test Accuracy: {accuracy:.2%}")
+
+    # UMAP
+    reducer = umap.UMAP()
+    embedding = reducer.fit_transform(outputs.numpy())
+    plt.figure(figsize=(8,6))
+    scatter = plt.scatter(embedding[:,0], embedding[:,1], c=labels, cmap="tab10", alpha=0.7)
+    plt.colorbar(scatter)
+    plt.title("UMAP projection")
+    plt.savefig("umap_projection.png")
+    plt.close()
+
+    # Confusion Matrix
+    cm = confusion_matrix(labels, preds)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot(cmap="Blues")
+    plt.title("Confusion Matrix")
+    plt.savefig("confusion_matrix.png")
+    plt.close()
+
+def get_predictions_and_labels(model, dataloader):
+    """Get predictions and labels from the model for the given dataloader.
+    Args:
+        model (torch.nn.Module): The model to evaluate.
+        dataloader (DataLoader): DataLoader for the dataset.
+    Returns:
+        tuple: A tuple containing:
+            - all_outputs (torch.Tensor): Model outputs for all samples.
+            - all_preds (list): List of predicted labels.
+            - all_labels (list): List of true labels.
+    """
+    model.eval()
+    all_outputs = []
+    all_preds = []
+    all_labels = []
+    with torch.no_grad():
+        for inputs, labels in tqdm(dataloader, desc="Predicting"):
+            inputs = inputs.to(gv.DEVICE)
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            all_outputs.append(outputs.cpu())
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.numpy())
+    all_outputs = torch.cat(all_outputs)
+    return all_outputs, all_preds, all_labels
 
 def load_and_evaluate(default_path=None) -> None:
     """Load a model and dataset and evaluate it on a test set.
@@ -74,7 +119,6 @@ def load_and_evaluate(default_path=None) -> None:
         evaluate_model(default_path, arguments["mf"])
     else:
         tqdm.write(f"{default_path} is not a valid directory")
-
 
 if __name__ == "__main__":
     # load and evaluate the model
