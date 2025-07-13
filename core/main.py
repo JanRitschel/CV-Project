@@ -145,7 +145,6 @@ def cross_validate(dataset: PatchDatasetFromJson):
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
     return best_tuple
 
-def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3, val_split=0.2, loss_file=None, num_chanels=2):
     # Split dataset in train/val
     train_size = int((1 - val_split) * len(dataset))
     val_size = len(dataset) - train_size
@@ -185,7 +184,6 @@ def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3
             best_val_loss = val_loss
             epochs_no_improve = 0
             best_model = copy.deepcopy(model)
-            torch.save(model.state_dict(), "final_model.pth")
         else:
             epochs_no_improve += 1
 
@@ -202,15 +200,6 @@ def main(default_path=None):
         Resize((224, 224))  # expects torch.Tensor C×H×W
     ])
 
-    parser = argparse.ArgumentParser(
-        description="Trains a LeViT model with cross-validation on a dataset")
-    #    parser.add_argument("--version", action="version", version='%(prog)s ' + __version__)
-    parser.add_argument("-db", metavar="database", required=True,
-                        help="Please provide the path to the database directory: ")
-    parser.add_argument("-lf", metavar="loss_file", required=True,
-                        help="Please provide the path to the loss file: ")
-
-    arguments = vars(parser.parse_args())
     tqdm.write(f"Arguments: {arguments}")
     if arguments["db"]:
         default_path = arguments["db"]
@@ -218,12 +207,14 @@ def main(default_path=None):
     if os.path.isdir(default_path):
 
         dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=[0])  # Use first channel
-        # Split dataset into training and validation sets
+        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=CHANNEL_LIST)  # Use Channel List
+        
         train_size = int(0.75 * len(dataset))
         val_size = len(dataset) - train_size
+        test_size = len(dataset) - train_size
         random_generator = torch.Generator().manual_seed(42)
-        train_dataset, test_dataset = random_split(dataset, [train_size, val_size], random_generator)
-        
+        train_dataset, test_dataset = random_split(dataset, [train_size, test_size], random_generator)
+
         """
         # Split dataset into training and validation sets
         train_size = int(0.5 * len(train_dataset))
@@ -233,14 +224,19 @@ def main(default_path=None):
         
         best_batch, best_lr = cross_validate(cross_train_dataset)
          """
+        
         # Use the best hyperparameters found during cross-validation
         best_batch = 16
         best_lr = 1e-4
         #NUM_EPOCHS = 2
         
         #get test loader and train model
-        test_loader = DataLoader(test_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
-        final_model = train_final_model(train_dataset, batch_size=best_batch, lr=best_lr, num_epochs=NUM_EPOCHS, loss_file=arguments["lf"], num_chanels=1)
+        test_loader = DataLoader(test_dataset, batch_size=best_batch, 
+                                 shuffle=False, num_workers=NUM_WORKERS)
+        final_model = train_final_model(train_dataset, batch_size=best_batch, 
+                                        lr=best_lr, num_epochs=NUM_EPOCHS, 
+                                        loss_file=arguments["lf"], num_chanels=1,
+                                        model_path=arguments["mf"])
         
         # Evaluate on training set
         """ train_loader = DataLoader(train_dataset, batch_size=best_batch, shuffle=False, num_workers=NUM_WORKERS)
@@ -276,8 +272,5 @@ def main(default_path=None):
 
 
 if __name__ == "__main__":
-    # Load dataset
-    root_path = '/Users/Noah/Uni Koeln Git/Computer Vision/Project/Michigan-Dataset'
-
     # Run cross-validation
-    main(root_path)
+    main()
