@@ -10,6 +10,7 @@ This project trains a LeViT model on a dataset of annotated SRH images of glioma
 - [Model](#model)
 - [Results](#results)
 - [Literature](#literature)
+- [Contributors](#contributors)
 - [License](#license)
 
 ## Installation
@@ -41,11 +42,14 @@ This project trains a LeViT model on a dataset of annotated SRH images of glioma
 
 4. Save the database in a directory of the following structure:
 
-- /your/custom/path
-  - studies
-    - patient folders
-  - meta
-    - opensrh.json
+    - /your/custom/path
+    - studies
+        - patient folders
+    - meta
+        - opensrh.json
+
+    If you have access to the group folders the database can be found at:
+    /scratch/cv-course2025/group_tumor_images
 
 ## Usage
 
@@ -181,6 +185,11 @@ In addition ot the confusion matrices the UMAPs of each channel combination are:
 - [Graham, B., El-Nouby, A., Touvron, H., Stock, P., Joulin, A., Jégou, H., & Douze, M. (2021). Levit: a vision transformer in convnet's clothing for faster inference. In Proceedings of the IEEE/CVF international conference on computer vision (pp. 12259-12269).][levit_link] - Original paper on LeViT models
 
 - [Hollon, T. C., Pandian, B., Adapa, A. R., Urias, E., Save, A. V., Khalsa, S. S. S., ... & Orringer, D. A. (2020). Near real-time intraoperative brain tumor diagnosis using stimulated Raman histology and deep neural networks. Nature medicine, 26(1), 52-58.][main_paper_link] - Original paper on the application of CNN on SRH images
+
+## Contributors
+
+- Noah Michels
+- Luca Haucap
 
 ## License
 
