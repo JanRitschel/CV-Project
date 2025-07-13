@@ -1,5 +1,3 @@
-nose
-sphinx
 matplotlib
 scipy
 tqdm
@@ -9,3 +7,4 @@ torchvision
 torch
 tiffile
 timm
+sklearn

@@ -1,7 +1,6 @@
 import os
 import torch
 from torch.utils.data import DataLoader, random_split
-from dataset import PatchDatasetFromJson
 from tqdm import tqdm
 from torchvision.transforms import Compose, Resize
 from torch.utils.data import DataLoader
