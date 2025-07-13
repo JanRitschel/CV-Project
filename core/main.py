@@ -11,6 +11,7 @@ import numpy as np
 from dataset import PatchDatasetFromJson
 from tqdm import tqdm
 from torchvision.transforms import Compose, Resize
+import copy
 
 # Constants
 NUM_CLASSES = 8
@@ -22,6 +23,7 @@ BATCH_SIZE_LIST = [16,32,64]
 LR_LIST = [1e-2, 1e-3, 1e-4]
 K_SPLITS = 3
 DROP_RATE = 0.2  # Dropout rate for the model
+CHANNEL_LIST = [1]  # Use first channel, can be modified to use more channels
 
 
 def get_levit_model(model_name="levit_128s", num_classes=8, input_channels=2):
@@ -182,6 +184,7 @@ def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             epochs_no_improve = 0
+            best_model = copy.deepcopy(model)
             torch.save(model.state_dict(), "final_model.pth")
         else:
             epochs_no_improve += 1
@@ -191,7 +194,7 @@ def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3
             break
 
     tqdm.write("Final model saved as 'final_model.pth'")
-    return model
+    return best_model
 
 def main(default_path=None):
 
@@ -214,7 +217,7 @@ def main(default_path=None):
         tqdm.write(f"Using database path: {default_path}")
     if os.path.isdir(default_path):
         
-        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=[1])  # Use first two channels
+        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=CHANNEL_LIST)  # Use first two channels
         # Split dataset into training and validation sets
         train_size = int(0.75 * len(dataset))
         val_size = len(dataset) - train_size
