@@ -125,6 +125,17 @@ When applied to our dataset the most effective classifier was to use both channe
 The first channel of the images, which shows mostly lipids, resulted in an accuracy of 64.42% after 9 epochs of training.
 The second channel of the images, showing cellular structures, resulted in a very low accuracy of 26.06% after 4 epochs of training.
 
+The classes for the following figures are:
+
+- "hgg": 0
+- "lgg": 1
+- "mening": 2
+- "metast": 3
+- "normal": 4
+- "nondiagnostic": 5
+- "schwan": 6
+- "pituita": 7
+
 The confusion matrices are:
 
 <div style="display: flex; justify-content: space-between;">
