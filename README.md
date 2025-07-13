@@ -125,6 +125,40 @@ When applied to our dataset the most effective classifier was to use both channe
 The first channel of the images, which shows mostly lipids, resulted in an accuracy of 64.42% after 9 epochs of training.
 The second channel of the images, showing cellular structures, resulted in a very low accuracy of 26.06% after 4 epochs of training.
 
+The confusion matrices are:
+
+<div style="display: flex; justify-content: space-between;">
+  <div>
+    <img src="core\plots\confusion_matrix_binary_channel.png" alt="Image 1" width="80%"/>
+    <p><em>Confusion matrix both channels</em></p>
+  </div>
+  <div>
+    <img src="core\plots\confusion_matrix_channel0.png" alt="Image 2" width="80%"/>
+    <p><em>Confusion matrix channel 0</em></p>
+  </div>
+  <div>
+    <img src="core\plots\confusion_matrix_channel1.png" alt="Image 3" width="80%"/>
+    <p><em>Confusion matrix channel 1</em></p>
+  </div>
+</div>
+
+In addition ot the confusion matrices the UMAPs of each channel combination are:
+
+<div style="display: flex; justify-content: space-between;">
+  <div>
+    <img src="core\plots\umap_projection_binary_channel.png" alt="Image 1" width="80%"/>
+    <p><em>UMAP both channels</em></p>
+  </div>
+  <div>
+    <img src="core\plots\umap_projection_channel0.png" alt="Image 2" width="80%"/>
+    <p><em>UMAP channel 0</em></p>
+  </div>
+  <div>
+    <img src="core\plots\umap_projection_channel1.png" alt="Image 3" width="80%"/>
+    <p><em>UMAP channel 1</em></p>
+  </div>
+</div>
+
 ## Literature
 
 [timm_link]: https://doi.org/10.5281/zenodo.4414861
