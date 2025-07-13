@@ -145,21 +145,26 @@ def cross_validate(dataset: PatchDatasetFromJson):
     tqdm.write(f"Best CV Accuracy: {best_acc:.4f}")
     return best_tuple
 
+def train_final_model(dataset, batch_size, lr, num_epochs=NUM_EPOCHS, patience=3, val_split=0.2, loss_file=None, num_chanels=2, model_path="final_model.pth"):
     # Split dataset in train/val
     train_size = int((1 - val_split) * len(dataset))
     val_size = len(dataset) - train_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size], torch.Generator().manual_seed(42))
 
+    #load data
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=NUM_WORKERS)
 
+    # Initialize model, optimizer and loss function
     model = get_levit_model(model_name="levit_384", num_classes=NUM_CLASSES, input_channels=num_chanels).to(DEVICE)
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
     criterion = nn.CrossEntropyLoss()
 
+    # Early stopping parameters
     best_val_loss = float('inf')
     epochs_no_improve = 0
 
+    # Training loop
     tqdm.write(f"Training final model with batch_size={batch_size}, lr={lr}, epochs={num_epochs}")
     for epoch in tqdm(range(num_epochs), desc="Final Training Epochs"):
         train_loss = train_epoch(model, train_loader, criterion, optimizer)
@@ -184,6 +189,7 @@ def cross_validate(dataset: PatchDatasetFromJson):
             best_val_loss = val_loss
             epochs_no_improve = 0
             best_model = copy.deepcopy(model)
+            torch.save(model.state_dict(), model_path)
         else:
             epochs_no_improve += 1
 
@@ -194,23 +200,31 @@ def cross_validate(dataset: PatchDatasetFromJson):
     tqdm.write("Final model saved as 'final_model.pth'")
     return best_model
 
+def read_args():
+    parser = argparse.ArgumentParser(description="Train a LeViT model with cross-validation on a dataset")
+    parser.add_argument("-db", metavar="database", required=True, help="Path to the database directory")
+    parser.add_argument("-lf", metavar="loss_file", required=True, help="Path to the loss file")
+    parser.add_argument("-mf", metavar="model_file", required=True, help="Path to the model file")
+    return parser.parse_args()
+
 def main(default_path=None):
 
     transform = Compose([
         Resize((224, 224))  # expects torch.Tensor C×H×W
     ])
 
+    arguments = vars(read_args())
     tqdm.write(f"Arguments: {arguments}")
     if arguments["db"]:
         default_path = arguments["db"]
         tqdm.write(f"Using database path: {default_path}")
+        
     if os.path.isdir(default_path):
 
-        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=[0])  # Use first channel
         dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=CHANNEL_LIST)  # Use Channel List
         
+        # Split dataset into training and test sets
         train_size = int(0.75 * len(dataset))
-        val_size = len(dataset) - train_size
         test_size = len(dataset) - train_size
         random_generator = torch.Generator().manual_seed(42)
         train_dataset, test_dataset = random_split(dataset, [train_size, test_size], random_generator)
