@@ -5,11 +5,11 @@ from dataset import PatchDatasetFromJson
 from tqdm import tqdm
 from torchvision.transforms import Compose, Resize
 from torch.utils.data import DataLoader
-from dataset import PatchDatasetFromJson
-from main import DEVICE, NUM_WORKERS, NUM_CLASSES, SPLIT_SEED, get_levit_model, read_args
 
-# Global constants
-CHANNEL_LIST = [0, 1]  # Use both channels for evaluation
+from dataset import PatchDatasetFromJson
+from model_m import get_levit_model
+from helpers import read_args
+import global_vars as gv
 
 def evaluate_model(default_path:str, model_path:str, model_architecture:str = "levit_384") -> None:
     """Evaluate a pre-trained model on a dataset.
@@ -22,12 +22,12 @@ def evaluate_model(default_path:str, model_path:str, model_architecture:str = "l
     The accuracy of the model on the test set is printed.
     """
     # Load the model
-    model = get_levit_model(model_name=model_architecture, num_classes=NUM_CLASSES, input_channels=len(CHANNEL_LIST))
+    model = get_levit_model(model_name=model_architecture, num_classes=gv.NUM_CLASSES, input_channels=len(gv.CHANNEL_LIST))
     model.load_state_dict(torch.load(model_path))
     
     # Set the model to evaluation mode
     model.eval()
-    model = model.to(DEVICE)
+    model = model.to(gv.DEVICE)
 
     # Get a transform to resize images
     transform = Compose([
@@ -35,24 +35,24 @@ def evaluate_model(default_path:str, model_path:str, model_architecture:str = "l
     ])
     
     # Load the dataset
-    dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=CHANNEL_LIST)
+    dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=gv.CHANNEL_LIST)
     
     # Split dataset into training and validation sets
     train_size = int(0.75 * len(dataset))
     val_size = len(dataset) - train_size
-    random_generator = torch.Generator().manual_seed(SPLIT_SEED)
+    random_generator = torch.Generator().manual_seed(gv.SPLIT_SEED)
     _, test_dataset = random_split(dataset, [train_size, val_size], random_generator)
-    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, num_workers=NUM_WORKERS)
-    
+    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, num_workers=gv.NUM_WORKERS)
+
     # Evaluate the model on the test set
     correct = 0
     total = 0
     with torch.no_grad():
         for inputs, labels in tqdm(test_loader, desc="Evaluating on test set"):
-            outputs = model(inputs.to(DEVICE))
+            outputs = model(inputs.to(gv.DEVICE))
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
-            correct += (predicted == labels.to(DEVICE)).sum().item()
+            correct += (predicted == labels.to(gv.DEVICE)).sum().item()
 
     test_accuracy = correct / total
     tqdm.write(f"Test Accuracy: {test_accuracy:.2%}")
