@@ -213,8 +213,8 @@ def main(default_path=None):
         default_path = arguments["db"]
         tqdm.write(f"Using database path: {default_path}")
     if os.path.isdir(default_path):
-        
-        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=[1])  # Use first two channels
+
+        dataset = PatchDatasetFromJson(default_path, transform=transform, channel_indices=[0])  # Use first channel
         # Split dataset into training and validation sets
         train_size = int(0.75 * len(dataset))
         val_size = len(dataset) - train_size
